@@ -1,0 +1,5 @@
+# Ignorar los archivos y directorios creados por el entorno virtual de Python
+venv/
+
+# Ignorar archivos de caché de Python
+__pycache__/

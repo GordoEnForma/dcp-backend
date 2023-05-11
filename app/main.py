@@ -28,6 +28,7 @@ async def predict(file: UploadFile):
     labels = ["Queratosis actínicas","carcinoma de células basales","lesiones benignas similares a queratosis","dermatofibroma ", "melanoma", "nevo melanocítico", "vascular lesions"]
     prediction_labels = [labels[i] for i in np.argmax(predictions, axis=1)]
     
+    
     # Devuelve la respuesta JSON
-    return {"filename": file.filename, "prediction": prediction_labels[0], "Precisión": "80%"}
+    return {"filename": file.filename, "prediction": prediction_labels[0], "Precisión": predictions[0][np.argmax(predictions, axis=1)][0]*100}
 

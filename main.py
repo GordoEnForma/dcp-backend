@@ -1,34 +1,67 @@
-from fastapi import FastAPI, File, UploadFile
-import tensorflow as tf
-import numpy as np
-from PIL import Image
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import get_file 
+from tensorflow.keras.utils import load_img 
+from tensorflow.keras.utils import img_to_array
+from tensorflow import expand_dims
+from tensorflow.nn import softmax
+from numpy import argmax
+from numpy import max
+from numpy import array
+from json import dumps
+from uvicorn import run
+import os
 
 app = FastAPI()
-model = tf.keras.models.load_model("model.h5")
 
+origins = ["*"]
+methods = ["*"]
+headers = ["*"]
 
+app.add_middleware(
+    CORSMiddleware, 
+    allow_origins = origins,
+    allow_credentials = True,
+    allow_methods = methods,
+    allow_headers = headers    
+)
+
+model_dir = "Xception.h5"
+model = load_model(model_dir)
+
+class_predictions = array(["Queratosis actínicas","carcinoma de células basales","lesiones benignas similares a queratosis","dermatofibroma ", "melanoma", "nevo melanocítico", "vascular lesions"])
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Food Vision API!"}
 
 @app.post("/predict")
-async def predict(file: UploadFile):
-    # Carga la imagen del archivo
-    img = Image.open(file.file).convert("RGB")
+async def get_net_image_prediction(image_link: str = ""):
+    if image_link == "":
+        return {"message": "No image link provided"}
     
-    # Redimensiona la imagen a 224x224 y conviértela a un array de numpy
-    img = img.resize((224, 224))
-    img_array = np.array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    
-    # Normaliza los valores de píxeles
-    img_array = img_array / 255.0
-    
-    # Realiza la predicción
-    predictions = model.predict(img_array)
-    
-    # Decodifica las etiquetas
-    labels = ["Queratosis actínicas","carcinoma de células basales","lesiones benignas similares a queratosis","dermatofibroma ", "melanoma", "nevo melanocítico", "vascular lesions"]
-    prediction_labels = [labels[i] for i in np.argmax(predictions, axis=1)]
-    
-    
-    # Devuelve la respuesta JSON
-    return {"filename": file.filename, "prediction": prediction_labels[0], "Precisión": predictions[0][np.argmax(predictions, axis=1)][0]*100}
+    img_path = get_file(
+        origin = image_link
+    )
+    img = load_img(
+        img_path, 
+        target_size = (224, 224)
+    )
 
+    img_array = img_to_array(img)
+    img_array = expand_dims(img_array, 0)
+
+    pred = model.predict(img_array)
+    score = softmax(pred[0])
+
+    class_prediction = class_predictions[argmax(score)]
+    model_score = round(max(score) * 100, 2)
+
+    return {
+        "prediction": class_prediction,
+        "probability": model_score
+    }
+
+if __name__ == "__main__":
+    run(app)

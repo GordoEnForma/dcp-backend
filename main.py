@@ -1,17 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from tensorflow.keras.models import load_model
-from tensorflow.keras.utils import get_file 
-from tensorflow.keras.utils import load_img 
-from tensorflow.keras.utils import img_to_array
-from tensorflow import expand_dims
-from tensorflow.nn import softmax
-from numpy import argmax
-from numpy import max
+import tensorflow as tf
 from numpy import array
-from json import dumps
 from uvicorn import run
-import os
+import numpy as np
 
 app = FastAPI()
 
@@ -27,8 +19,8 @@ app.add_middleware(
     allow_headers = headers    
 )
 
-model_dir = "Xception.h5"
-model = load_model(model_dir)
+model_dir = "model.h5"
+model = tf.keras.models.load_model(model_dir)
 
 class_predictions = array(["Queratosis actínicas","carcinoma de células basales","lesiones benignas similares a queratosis","dermatofibroma ", "melanoma", "nevo melanocítico", "vascular lesions"])
 
@@ -41,26 +33,27 @@ async def get_net_image_prediction(image_link: str = ""):
     if image_link == "":
         return {"message": "No image link provided"}
     
-    img_path = get_file(
+    img_path = tf.keras.utils.get_file(
         origin = image_link
     )
-    img = load_img(
+    img = tf.keras.utils.load_img(
         img_path, 
-        target_size = (224, 224)
+        target_size = (256, 256)
     )
-
-    img_array = img_to_array(img)
-    img_array = expand_dims(img_array, 0)
-
-    pred = model.predict(img_array)
-    score = softmax(pred[0])
-
-    class_prediction = class_predictions[argmax(score)]
-    model_score = round(max(score) * 100, 2)
+    
+    img_array = np.array(img)
+    img_array = img_array / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+    predictions = model.predict(img_array)
+    print(predictions)
+    
+    labels = ["Queratosis actínicas","carcinoma de células basales","lesiones benignas similares a queratosis","dermatofibroma ", "melanoma", "nevo melanocítico", "vascular lesions"]
+    prediction_labels = [labels[i] for i in np.argmax(predictions, axis=1)]
 
     return {
-        "prediction": class_prediction,
-        "probability": model_score
+        "filename": image_link,
+        "prediction": prediction_labels[0],
+        "probability": predictions[0][np.argmax(predictions, axis=1)][0]*100
     }
 
 if __name__ == "__main__":

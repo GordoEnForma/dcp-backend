@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import tensorflow as tf
@@ -57,4 +58,5 @@ async def get_net_image_prediction(image_link: str = ""):
     }
 
 if __name__ == "__main__":
-    run(app)
+    port = int(os.environ.get('PORT', 5000))
+    run(app, host="0.0.0.0", port=port)

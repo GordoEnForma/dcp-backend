@@ -1,11 +1,11 @@
-FROM python:3.11.1
+FROM python:3.11.4
 
 # Maintainer info
 LABEL maintainer="cledmir.t.s@gmail.com"
 
 # Make working directories
-RUN  mkdir -p  /dcp-api
-WORKDIR  /dcp-api
+RUN  mkdir -p  /DCP-BACKEND
+WORKDIR  /DCP-BACKEND
 
 # Upgrade pip with no cache
 RUN pip install --no-cache-dir -U pip
